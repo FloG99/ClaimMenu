@@ -10,6 +10,7 @@ import net.md_5.bungee.api.ChatColor;
 import net.md_5.bungee.api.ChatMessageType;
 import net.md_5.bungee.api.chat.ComponentBuilder;
 import net.minecraft.world.level.saveddata.maps.MapDecoration;
+import org.bukkit.World;
 import org.bukkit.craftbukkit.v1_20_R2.util.CraftChatMessage;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
@@ -140,6 +141,11 @@ public class ClaimMenu extends MapMenu {
         if (team == null) {
             player.spigot().sendMessage(ChatMessageType.ACTION_BAR, new ComponentBuilder("You need to be in a team to claim chunks.").color(ChatColor.RED).create());
             MapMenuAPI.openMenu(player, ClaimMenuSettings.class);
+            return;
+        }
+
+        if (player.getWorld().getEnvironment() == World.Environment.THE_END) {
+            player.spigot().sendMessage(ChatMessageType.ACTION_BAR, new ComponentBuilder("You can not claim chunks in The End.").color(ChatColor.RED).create());
             return;
         }
 
