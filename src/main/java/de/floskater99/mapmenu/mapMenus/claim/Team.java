@@ -62,6 +62,10 @@ public class Team {
 
     @Override
     public int hashCode() {
+        return id.hashCode();
+    }
+
+    public int hash() {
         return Objects.hashCode(owner, teamName, teamColor);
     }
 }

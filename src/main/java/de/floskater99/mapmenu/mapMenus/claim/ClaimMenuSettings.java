@@ -559,7 +559,7 @@ public class ClaimMenuSettings extends MapMenu {
         Team team = isEdit ? this.team : new Team(UUID.randomUUID(), player.getUniqueId(), Sets.newHashSet(player.getUniqueId()), "", null, 0);
         Frame frame = new Frame(0, 0, 128, 128);
 
-        int beforeEditHash = team.hashCode();
+        int beforeEditHash = team.hash();
 
         Element teamName = new ElementBuilder(64 - 52, 10, 104, 16)
             .setText(isEdit ? team.teamName : "<Enter team name>", MapPalette.matchColor(0, 0, 0), isEdit ? TextAlignment.CENTER_LEFT : TextAlignment.CENTER_CENTER)
@@ -657,7 +657,7 @@ public class ClaimMenuSettings extends MapMenu {
             onSubmit.run();
             if (!isEdit) {
                 TeamController.addTeam(team);
-            } else if (team.hashCode() != beforeEditHash) {
+            } else if (team.hash() != beforeEditHash) {
                 TeamController.updateTeam(team);
             }
         });
