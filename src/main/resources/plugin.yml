@@ -1,0 +1,17 @@
+name: MapMenu
+version: 1.0
+author: floskater99
+
+main: de.floskater99.mapmenu.Main
+
+api-version: 1.20
+
+depend: [ ProtocolLib ]
+
+commands:
+    claim:
+        description: Open claim menu
+    refresh:
+        description: Reload teams or claimed chunks from the database
+    teammanager:
+        description: Admin commands for team functions
