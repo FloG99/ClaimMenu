@@ -1,6 +1,7 @@
 package de.floskater99.mapmenu.commands;
 
 import com.google.common.base.Strings;
+import com.google.common.collect.Sets;
 import de.floskater99.mapmenu.MapMenuAPI;
 import de.floskater99.mapmenu.mapMenus.claim.ClaimMenu;
 import de.floskater99.mapmenu.mapMenus.claim.Team;
@@ -15,12 +16,17 @@ import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.awt.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 public class TeamManagerCommand implements CommandExecutor, TabCompleter {
+    // teammanager create <teamname>
+    // teammanager rename <teamname> <new teamname>
     // teammanager delete <teamname>
+    // teammanager setowner <teamname> <player>
     // teammanager removeplayer <teamname> <player>
     // teammanager addplayer <teamname> <player>
     // teammanager addchunk <teamname> [chunkx] [chunkz]
@@ -46,15 +52,18 @@ public class TeamManagerCommand implements CommandExecutor, TabCompleter {
         String subcommand = args[0];
         String teamName = args[1];
         
-        Team team = TeamController.teams.values().stream().filter(team_ -> team_.teamName.equals(teamName) || team_.id.toString().equals(teamName)).findAny().orElse(null);
+        Team team = getTeamByNameOrID(teamName);
 
-        if (team == null) {
+        if (team == null && !subcommand.equalsIgnoreCase("create")) {
             player.sendMessage("Could not find a team with ID or name \"" + teamName + "\"");
             return true;
         }
 
         switch (subcommand.toLowerCase()) {
+            case "create" -> createTeam(args, teamName, player);
             case "delete" -> deleteTeam(args, team, player);
+            case "rename" -> renameTeam(args, team, player);
+            case "setowner" -> setTeamOwner(args, team, player);
             case "removeplayer" -> removePlayer(args, team, player);
             case "addplayer" -> addPlayer(args, team, player);
             case "addchunk" -> addChunk(args, team, player);
@@ -70,6 +79,22 @@ public class TeamManagerCommand implements CommandExecutor, TabCompleter {
         return false;
     }
 
+    private Team getTeamByNameOrID(String nameOrID) {
+        return TeamController.teams.values().stream().filter(team_ -> team_.teamName.equals(nameOrID) || team_.id.toString().equals(nameOrID)).findAny().orElse(null);
+    }
+
+    private void createTeam(String[] args, String teamName, Player player) {
+        if (args.length != 2) {
+            player.sendMessage("Usage: /teammanager create <teamname>");
+            return;
+        }
+
+        Team team = new Team(UUID.randomUUID(), player.getUniqueId(), Sets.newHashSet(player.getUniqueId()), teamName, new Color(255, 242, 0), 0);
+
+        TeamController.addTeam(team);
+        player.sendMessage("Created team '" + team.teamName + "'");
+    }
+
     private void deleteTeam(String[] args, Team team, Player player) {
         if (args.length != 2) {
             player.sendMessage("Usage: /teammanager delete <teamname>");
@@ -78,6 +103,44 @@ public class TeamManagerCommand implements CommandExecutor, TabCompleter {
 
         TeamController.deleteTeamWrapper(team);
         player.sendMessage("Deleted team: " + team.teamName);
+    }
+
+    private void renameTeam(String[] args, Team team, Player player) {
+        if (args.length != 3) {
+            player.sendMessage("Usage: /teammanager rename <teamname> <new teamname>");
+            return;
+        }
+
+        String oldTeamName = team.teamName;
+        team.teamName = args[2];
+
+        TeamController.updateTeam(team);
+        player.sendMessage("Renamed team '" + oldTeamName + "' to '" + team.teamName + "'");
+    }
+
+    private void setTeamOwner(String[] args, Team team, Player player) {
+        if (args.length != 3) {
+            player.sendMessage("Usage: /teammanager setowner <teamname> <player>");
+            return;
+        }
+
+        String newOwnerName = args[2];
+        OfflinePlayer newOwner;
+        if (newOwnerName.contains("-")) { // UUID
+            newOwner = Bukkit.getOfflinePlayer(UUID.fromString(newOwnerName));
+        } else { // Name
+            newOwner = Bukkit.getOfflinePlayer(newOwnerName);
+        }
+
+        if (!newOwner.hasPlayedBefore()) {
+            player.sendMessage("Player not found.");
+            return;
+        }
+
+        team.owner = newOwner.getUniqueId();
+
+        TeamController.updateTeam(team);
+        player.sendMessage("Made " + newOwner.getName() + " the new team owner.");
     }
 
     private void removePlayer(String[] args, Team team, Player player) {
@@ -212,11 +275,16 @@ public class TeamManagerCommand implements CommandExecutor, TabCompleter {
     }
 
     private void giftChunks(String[] args, Team team, Player player) {
-        if (args.length != 3) {
-            player.sendMessage("Usage: /teammanager giftchunks <teamname> <chunk count>");
+        if (args.length != 3 && args.length != 2) {
+            player.sendMessage("Usage: /teammanager giftchunks <teamname> [chunk count]");
             return;
         }
-        
+
+        if (args.length == 2) {
+            player.sendMessage("Team " + team.teamName + " has " + team.additionalChunks + " gifted chunks.");
+            return;
+        }
+
         try {
             int count = Integer.parseInt(args[2]);
             
@@ -238,17 +306,19 @@ public class TeamManagerCommand implements CommandExecutor, TabCompleter {
 
     @Nullable
     @Override
-    public List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String s, @NotNull String[] args) {
-        if (!(sender instanceof Player player)) {
+    public List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String s, @NotNull String[] rawArgs) {
+        if (!(sender instanceof Player)) {
             return List.of();
         }
 
+        String[] args = mergeQuotedWords(rawArgs);
+
         if (args.length == 1) {
-            List<String> subCommands = List.of("delete", "addplayer", "removeplayer", "addchunk", "overwritechunk", "removechunk", "list", "giftchunks");
+            List<String> subCommands = List.of("create", "delete", "rename", "setowner", "addplayer", "removeplayer", "addchunk", "overwritechunk", "removechunk", "list", "giftchunks");
             return subCommands.stream().filter(subCommand -> subCommand.startsWith(args[0])).toList();
         }
 
-        if (args.length == 2) {
+        if (args.length == 2 && !"create".equals(args[0])) {
             return TeamController.teams.values().stream().map(team -> team.teamName.contains(" ") ? "\"" + team.teamName + "\"" : team.teamName).filter(name -> name.startsWith(args[1])).toList();
         }
 
@@ -256,8 +326,8 @@ public class TeamManagerCommand implements CommandExecutor, TabCompleter {
             if ("addplayer".equals(args[0])) {
                 return Bukkit.getOnlinePlayers().stream().map(Player::getName).filter(name -> name.startsWith(args[2])).toList();
             }
-            if ("removeplayer".equals(args[0])) {
-                Team team = TeamController.teams.values().stream().filter(team_ -> team_.members.contains(player.getUniqueId())).findAny().orElse(null);
+            if ("removeplayer".equals(args[0]) || "setowner".equals(args[0])) {
+                Team team = getTeamByNameOrID(args[1]);
                 if (team != null) {
                     return team.members.stream().map(Bukkit::getOfflinePlayer).map(OfflinePlayer::getName).filter(name -> name != null && name.startsWith(args[2])).toList();
                 }

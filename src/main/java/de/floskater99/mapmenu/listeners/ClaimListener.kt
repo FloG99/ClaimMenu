@@ -5,10 +5,10 @@ import de.floskater99.mapmenu.MapMenuAPI
 import de.floskater99.mapmenu.mapMenus.claim.Team
 import de.floskater99.mapmenu.mapMenus.claim.TeamController
 import org.apache.commons.lang3.StringUtils
-import org.bukkit.ChatColor
 import org.bukkit.Location
 import org.bukkit.Material
 import org.bukkit.NamespacedKey
+import org.bukkit.block.EnderChest
 import org.bukkit.block.data.Directional
 import org.bukkit.entity.EntityType
 import org.bukkit.entity.Player
@@ -27,7 +27,6 @@ import org.bukkit.event.vehicle.VehicleCreateEvent
 import org.bukkit.event.vehicle.VehicleDestroyEvent
 import org.bukkit.persistence.PersistentDataType
 import org.bukkit.util.Vector
-import java.awt.Color
 import java.util.*
 
 
@@ -258,7 +257,7 @@ class ClaimListener : Listener {
     fun onPlayerInteract(event: PlayerInteractEvent) {
         val clickedBlock = event.clickedBlock ?: return
 
-        if (event.clickedBlock != null) {
+        if (event.clickedBlock != null && event.clickedBlock !is EnderChest) {
             if (!canAccessChunk(clickedBlock.location, event.player)) {
                 event.isCancelled = true
             }

@@ -38,8 +38,6 @@ public class Listeners implements Listener {
     @EventHandler
     public void onInteract(PlayerInteractEvent e) {
         if (!MapMenuAPI.playersWithOpenMenu.containsKey(e.getPlayer())) return;
-        
-        System.out.println(e.getAction());
 
         if (e.getAction() == Action.LEFT_CLICK_AIR || e.getAction() == Action.LEFT_CLICK_BLOCK) {
             MapMenuAPI.leftClickEvent(e.getPlayer());
