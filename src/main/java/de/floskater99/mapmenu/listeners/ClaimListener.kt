@@ -25,6 +25,7 @@ import org.bukkit.event.player.PlayerInteractEvent
 import org.bukkit.event.player.PlayerMoveEvent
 import org.bukkit.event.vehicle.VehicleCreateEvent
 import org.bukkit.event.vehicle.VehicleDestroyEvent
+import org.bukkit.event.vehicle.VehicleMoveEvent
 import org.bukkit.persistence.PersistentDataType
 import org.bukkit.util.Vector
 import java.util.*
@@ -41,10 +42,6 @@ class ClaimListener : Listener {
 
     private fun getClaimTeam(location: Location): Team? {
         return TeamController.claimedChunks[location.world!!.name]?.get(location.chunk.x, location.chunk.z)
-    }
-
-    private fun isClaimed(location: Location): Boolean {
-        return this.getClaimTeam(location) != null
     }
 
     @EventHandler
@@ -140,6 +137,13 @@ class ClaimListener : Listener {
         val entity = event.entity
         if (event.cause == EntityDamageEvent.DamageCause.BLOCK_EXPLOSION || event.cause == EntityDamageEvent.DamageCause.ENTITY_EXPLOSION) {
             if (getClaimTeam(entity.location) != null) {
+                event.isCancelled = true
+            }
+        }
+
+        if (event.cause == EntityDamageEvent.DamageCause.FALL) {
+            val team = getClaimTeam(entity.location);
+            if (team != null && "Spawn" == team.teamName) {
                 event.isCancelled = true
             }
         }
@@ -243,6 +247,13 @@ class ClaimListener : Listener {
         val claimTeamTarget = getClaimTeam(event.toBlock.location)
         if (claimTeamTarget != null && claimTeamTarget != claimTeamSource) {
             event.isCancelled = true
+        }
+    }
+
+    @EventHandler
+    fun onVehicleMove(event: VehicleMoveEvent) {
+        if (!event.vehicle.passengers.filterIsInstance<Player>().any { player -> canAccessChunk(player.location, player) }) {
+            event.vehicle.teleport(event.from)
         }
     }
 

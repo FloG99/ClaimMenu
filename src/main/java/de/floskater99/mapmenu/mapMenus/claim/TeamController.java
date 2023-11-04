@@ -5,7 +5,6 @@ import de.floskater99.mapmenu.MapMenuAPI;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 import org.bukkit.Bukkit;
-import org.bukkit.Chunk;
 import org.bukkit.Location;
 import org.bukkit.World;
 
@@ -35,6 +34,9 @@ public class TeamController {
             ResultSet teamsResultSet = statement.executeQuery(selectTeamsQuery);
 
             while (teamsResultSet.next()) {
+                if ("blocked".equals(teamsResultSet.getString("id"))) {
+                    continue;
+                }
                 UUID teamId = UUID.fromString(teamsResultSet.getString("id"));
                 UUID owner = UUID.fromString(teamsResultSet.getString("owner"));
                 String teamName = teamsResultSet.getString("name");
@@ -82,7 +84,7 @@ public class TeamController {
                 String teamID = chunksResultSet.getString("teamid");
 
                 if ("blocked".equals(teamID)) {
-                    blockedChunks.computeIfAbsent(world, k -> List.of()).add(new ImmutablePair<>(chunkX, chunkZ));
+                    blockedChunks.computeIfAbsent(world, k -> new ArrayList<>()).add(new ImmutablePair<>(chunkX, chunkZ));
                 } else {
                     UUID teamId = UUID.fromString(teamID);
 
@@ -336,10 +338,18 @@ public class TeamController {
     }
 
     public static void blockChunk(Location location) {
-        TeamController.claimChunk(location.getWorld(), location.getChunk().getX(), location.getChunk().getZ(), "blocked");
+        int x = location.getChunk().getX();
+        int z = location.getChunk().getZ();
+
+        TeamController.blockedChunks.computeIfAbsent(location.getWorld().getName(), k -> new ArrayList<>()).add(new ImmutablePair<>(x, z));
+        TeamController.claimChunk(location.getWorld(), x, z, "blocked");
     }
 
     public static void unblockChunk(Location location) {
+        int x = location.getChunk().getX();
+        int z = location.getChunk().getZ();
+
+        TeamController.blockedChunks.computeIfAbsent(location.getWorld().getName(), k -> new ArrayList<>()).remove(new ImmutablePair<>(x, z));
         TeamController.unclaimChunk(location.getWorld(), location.getChunk().getX(), location.getChunk().getZ());
     }
 }

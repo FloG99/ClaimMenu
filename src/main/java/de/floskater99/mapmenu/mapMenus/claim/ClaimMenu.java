@@ -148,7 +148,7 @@ public class ClaimMenu extends MapMenu {
             return;
         }
 
-        if (player.getWorld().getEnvironment() == World.Environment.THE_END && xzMinDistance(player.getLocation(), new Location(player.getWorld(), 0, 0, 0)) < 176) {
+        if (player.getWorld().getEnvironment() == World.Environment.THE_END && xzMaxDistance(new Location(player.getWorld(), xKey * 16, 0, zKey * 16), new Location(player.getWorld(), 0, 0, 0)) < 176) {
             player.spigot().sendMessage(ChatMessageType.ACTION_BAR, new ComponentBuilder("You can not claim the main end island.").color(ChatColor.RED).create());
             return;
         }
@@ -186,8 +186,8 @@ public class ClaimMenu extends MapMenu {
         return blockedChunks.contains(new ImmutablePair<>(xKey, zKey));
     }
 
-    private int xzMinDistance(Location a, Location b) {
-        return Math.abs(Math.min(b.getBlockX() - a.getBlockX(), b.getBlockZ() - a.getBlockZ()));
+    private int xzMaxDistance(Location a, Location b) {
+        return Math.abs(Math.max(b.getBlockX() - a.getBlockX(), b.getBlockZ() - a.getBlockZ()));
     }
 
     private boolean isClaimableChunk(int xKey, int zKey) {
