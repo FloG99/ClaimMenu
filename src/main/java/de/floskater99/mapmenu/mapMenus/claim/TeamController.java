@@ -2,16 +2,22 @@ package de.floskater99.mapmenu.mapMenus.claim;
 
 import com.google.common.collect.HashBasedTable;
 import de.floskater99.mapmenu.MapMenuAPI;
+import org.apache.commons.lang3.tuple.ImmutablePair;
+import org.apache.commons.lang3.tuple.Pair;
 import org.bukkit.Bukkit;
+import org.bukkit.Chunk;
+import org.bukkit.Location;
 import org.bukkit.World;
 
 import java.awt.*;
 import java.sql.*;
 import java.util.*;
+import java.util.List;
 
 public class TeamController {
     public static final Map<UUID, Team> teams = new HashMap<>();
     public static final Map<String, HashBasedTable<Integer, Integer, Team>> claimedChunks = new HashMap<>();
+    public static final Map<String, List<Pair<Integer, Integer>>> blockedChunks = new HashMap<>();
     public static final Map<Team, Integer> claimedChunkCounts = new HashMap<>();
     public static final Map<UUID, Set<Team>> invites = new HashMap<>();
     
@@ -58,6 +64,7 @@ public class TeamController {
     }
 
     public static void initializeClaimedChunks() {
+        blockedChunks.clear();
         claimedChunks.clear();
         claimedChunkCounts.clear();
 
@@ -72,12 +79,18 @@ public class TeamController {
                 String world = chunksResultSet.getString("world");
                 int chunkX = chunksResultSet.getInt("chunkx");
                 int chunkZ = chunksResultSet.getInt("chunkz");
-                UUID teamId = UUID.fromString(chunksResultSet.getString("teamid"));
+                String teamID = chunksResultSet.getString("teamid");
 
-                if (teams.containsKey(teamId)) {
-                    Team team = teams.get(teamId);
-                    claimedChunks.computeIfAbsent(world, k -> HashBasedTable.create()).put(chunkX, chunkZ, team);
-                    claimedChunkCounts.merge(team, 1, Integer::sum);
+                if ("blocked".equals(teamID)) {
+                    blockedChunks.computeIfAbsent(world, k -> List.of()).add(new ImmutablePair<>(chunkX, chunkZ));
+                } else {
+                    UUID teamId = UUID.fromString(teamID);
+
+                    if (teams.containsKey(teamId)) {
+                        Team team = teams.get(teamId);
+                        claimedChunks.computeIfAbsent(world, k -> HashBasedTable.create()).put(chunkX, chunkZ, team);
+                        claimedChunkCounts.merge(team, 1, Integer::sum);
+                    }
                 }
             }
 
@@ -254,12 +267,12 @@ public class TeamController {
 
         claimedChunks.get(world.getName()).put(x, z, team);
         claimedChunkCounts.merge(team, 1, Integer::sum);
-        TeamController.claimChunk(world, x, z, team);
+        TeamController.claimChunk(world, x, z, team.id.toString());
         team.members.forEach(member -> MapMenuAPI.liveUpdateMenu(Bukkit.getPlayer(member), ClaimMenu.class, "claimCount"));
         return null;
     }
 
-    public static void claimChunk(World world, int x, int z, Team team) {
+    public static void claimChunk(World world, int x, int z, String teamId) {
         try {
             Connection connection = Database.getInstance().getConnection();
 
@@ -268,7 +281,7 @@ public class TeamController {
                 pstmt.setString(1, world.getName());
                 pstmt.setInt(2, x);
                 pstmt.setInt(3, z);
-                pstmt.setString(4, team.id.toString());
+                pstmt.setString(4, teamId);
                 pstmt.executeUpdate();
             }
         } catch (SQLException e) {
@@ -320,5 +333,13 @@ public class TeamController {
         } catch (SQLException e) {
             e.printStackTrace();
         }
+    }
+
+    public static void blockChunk(Location location) {
+        TeamController.claimChunk(location.getWorld(), location.getChunk().getX(), location.getChunk().getZ(), "blocked");
+    }
+
+    public static void unblockChunk(Location location) {
+        TeamController.unclaimChunk(location.getWorld(), location.getChunk().getX(), location.getChunk().getZ());
     }
 }

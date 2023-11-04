@@ -23,15 +23,6 @@ public class PlayerDataController implements Listener {
         return data.get(uuid).get(key);
     }
     
-    public static String getOrDefault(Player player, String key, String def) {
-        String result = get(player, key);
-        if (result != null) {
-            return result;
-        }
-
-        return def;
-    }
-    
     public static void put(Player player, String key, String value) {
         put(player.getUniqueId(), key, value);
     }
@@ -64,7 +55,6 @@ public class PlayerDataController implements Listener {
 
             String playerList = players.stream().map(p -> "'" + p.getUniqueId() + "'").collect(Collectors.joining(", "));
             String query = "SELECT * FROM userdata WHERE userid in (" + playerList + ")";
-            System.out.println(query);
             ResultSet resultSet = statement.executeQuery(query);
 
             while (resultSet.next()) {

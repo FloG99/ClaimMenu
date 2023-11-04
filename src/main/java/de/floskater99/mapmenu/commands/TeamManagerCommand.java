@@ -7,6 +7,7 @@ import de.floskater99.mapmenu.mapMenus.claim.ClaimMenu;
 import de.floskater99.mapmenu.mapMenus.claim.Team;
 import de.floskater99.mapmenu.mapMenus.claim.TeamController;
 import org.bukkit.Bukkit;
+import org.bukkit.Chunk;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
@@ -34,6 +35,8 @@ public class TeamManagerCommand implements CommandExecutor, TabCompleter {
     // teammanager removechunk <teamname> [chunkx] [chunkz]
     // teammanager list <teamname>
     // teammanager giftchunks <teamname> <count>
+    // teammanager blockchunk
+    // teammanager unblockchunk
 
     @Override
     public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String s, @NotNull String[] args) {
@@ -42,18 +45,26 @@ public class TeamManagerCommand implements CommandExecutor, TabCompleter {
             return true;
         }
 
-        if (args.length < 2) {
+        if (args.length < 2 && !"blockchunk".equals(args[0]) && !"unblockchunk".equals(args[0])) {
             player.sendMessage("Usage: /teammanager <subcommand> <teamname> [arguments]");
             return true;
         }
-        
+
         args = mergeQuotedWords(args);
 
         String subcommand = args[0];
-        String teamName = args[1];
-        
-        Team team = getTeamByNameOrID(teamName);
 
+        if ("blockchunk".equals(subcommand)) {
+            blockChunk(player);
+            return false;
+        }
+        if ("unblockchunk".equals(subcommand)) {
+            unblockChunk(player);
+            return false;
+        }
+
+        String teamName = args[1];
+        Team team = getTeamByNameOrID(teamName);
         if (team == null && !subcommand.equalsIgnoreCase("create")) {
             player.sendMessage("Could not find a team with ID or name \"" + teamName + "\"");
             return true;
@@ -81,6 +92,16 @@ public class TeamManagerCommand implements CommandExecutor, TabCompleter {
 
     private Team getTeamByNameOrID(String nameOrID) {
         return TeamController.teams.values().stream().filter(team_ -> team_.teamName.equals(nameOrID) || team_.id.toString().equals(nameOrID)).findAny().orElse(null);
+    }
+
+    private void blockChunk(Player player) {
+        TeamController.blockChunk(player.getLocation());
+        player.sendMessage("Blocked current chunk from being claimed.");
+    }
+
+    private void unblockChunk(Player player) {
+        TeamController.unblockChunk(player.getLocation());
+        player.sendMessage("Unblocked current chunk from being claimed.");
     }
 
     private void createTeam(String[] args, String teamName, Player player) {
@@ -314,11 +335,11 @@ public class TeamManagerCommand implements CommandExecutor, TabCompleter {
         String[] args = mergeQuotedWords(rawArgs);
 
         if (args.length == 1) {
-            List<String> subCommands = List.of("create", "delete", "rename", "setowner", "addplayer", "removeplayer", "addchunk", "overwritechunk", "removechunk", "list", "giftchunks");
+            List<String> subCommands = List.of("create", "delete", "rename", "setowner", "addplayer", "removeplayer", "addchunk", "overwritechunk", "removechunk", "list", "giftchunks", "blockchunk", "unblockchunk");
             return subCommands.stream().filter(subCommand -> subCommand.startsWith(args[0])).toList();
         }
 
-        if (args.length == 2 && !"create".equals(args[0])) {
+        if (args.length == 2 && !"create".equals(args[0]) && !"blockchunk".equals(args[0]) && !"unblockchunk".equals(args[0])) {
             return TeamController.teams.values().stream().map(team -> team.teamName.contains(" ") ? "\"" + team.teamName + "\"" : team.teamName).filter(name -> name.startsWith(args[1])).toList();
         }
 

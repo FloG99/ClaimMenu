@@ -10,11 +10,13 @@ import net.md_5.bungee.api.ChatColor;
 import net.md_5.bungee.api.ChatMessageType;
 import net.md_5.bungee.api.chat.ComponentBuilder;
 import net.minecraft.world.level.saveddata.maps.MapDecoration;
+import org.apache.commons.lang3.tuple.ImmutablePair;
+import org.apache.commons.lang3.tuple.Pair;
+import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.craftbukkit.v1_20_R2.util.CraftChatMessage;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.map.MapPalette;
 import org.bukkit.map.MinecraftFont;
 
 import javax.imageio.ImageIO;
@@ -27,6 +29,7 @@ import java.util.*;
 public class ClaimMenu extends MapMenu {
     private int claimRange = 0; // Add to config if needed
     private final HashBasedTable<Integer, Integer, Team> claimedChunks;
+    private final List<Pair<Integer, Integer>> blockedChunks;
     private final Map<Team, Integer> claimedChunkCounts = TeamController.claimedChunkCounts;
     private Team team;
     private final List<Team> teams;
@@ -38,7 +41,7 @@ public class ClaimMenu extends MapMenu {
     private int oldHighlightXKey;
     private int oldHighlightZKey;
     private Element claimAmount;
-    
+
     static {
         try {
             settingsBackground = ImageIO.read(Objects.requireNonNull(ClaimMenu.class.getResourceAsStream("/images/Team.png")));
@@ -68,6 +71,7 @@ public class ClaimMenu extends MapMenu {
             }
         }
 
+        blockedChunks = TeamController.blockedChunks.computeIfAbsent(player.getWorld().getName(), k -> List.of());
         claimedChunks = TeamController.claimedChunks.computeIfAbsent(player.getWorld().getName(), k -> HashBasedTable.create());
         if (team != null) {
             claimedChunkCounts.putIfAbsent(team, 0);
@@ -144,8 +148,13 @@ public class ClaimMenu extends MapMenu {
             return;
         }
 
-        if (player.getWorld().getEnvironment() == World.Environment.THE_END) {
-            player.spigot().sendMessage(ChatMessageType.ACTION_BAR, new ComponentBuilder("You can not claim chunks in The End.").color(ChatColor.RED).create());
+        if (player.getWorld().getEnvironment() == World.Environment.THE_END && xzMinDistance(player.getLocation(), new Location(player.getWorld(), 0, 0, 0)) < 176) {
+            player.spigot().sendMessage(ChatMessageType.ACTION_BAR, new ComponentBuilder("You can not claim the main end island.").color(ChatColor.RED).create());
+            return;
+        }
+
+        if (isChunkBlocked(xKey, zKey)) {
+            player.spigot().sendMessage(ChatMessageType.ACTION_BAR, new ComponentBuilder("This chunk cannot be claimed.").color(ChatColor.RED).create());
             return;
         }
 
@@ -153,6 +162,7 @@ public class ClaimMenu extends MapMenu {
             player.spigot().sendMessage(ChatMessageType.ACTION_BAR, new ComponentBuilder("This chunk has already been claimed.").color(ChatColor.RED).create());
             return;
         }
+
         if (claimRange > 0 && !isClaimableChunk(xKey, zKey)) {
             player.spigot().sendMessage(ChatMessageType.ACTION_BAR, new ComponentBuilder("Too close to another claim.").color(ChatColor.RED).create());
             return;
@@ -170,6 +180,14 @@ public class ClaimMenu extends MapMenu {
     private boolean isChunkOwnedByAnotherTeam(int xKey, int zKey) {
         Team chunkOwner = claimedChunks.get(xKey, zKey);
         return chunkOwner != null && !chunkOwner.equals(team);
+    }
+
+    private boolean isChunkBlocked(int xKey, int zKey) {
+        return blockedChunks.contains(new ImmutablePair<>(xKey, zKey));
+    }
+
+    private int xzMinDistance(Location a, Location b) {
+        return Math.abs(Math.min(b.getBlockX() - a.getBlockX(), b.getBlockZ() - a.getBlockZ()));
     }
 
     private boolean isClaimableChunk(int xKey, int zKey) {
@@ -345,9 +363,7 @@ public class ClaimMenu extends MapMenu {
     }
 
     @Override
-    protected void onScroll(int direction) {
-        //this.player.sendMessage("" + direction);
-    }
+    protected void onScroll(int direction) {}
 
     @Override
     public boolean doRenderBase() {
