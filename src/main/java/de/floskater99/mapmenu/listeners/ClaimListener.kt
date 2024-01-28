@@ -71,7 +71,6 @@ class ClaimListener : Listener {
         val affectedBlocks = event.blockList()
         val forbiddenAffectedBlocks = affectedBlocks.filter {
             val blockTeam = getClaimTeam(it.location)
-            println(blockTeam)
             blockTeam != null && blockTeam != explodingBlockTeam
         }.map { it.location }
 
@@ -252,9 +251,9 @@ class ClaimListener : Listener {
 
     @EventHandler
     fun onVehicleMove(event: VehicleMoveEvent) {
-        if (!event.vehicle.passengers.filterIsInstance<Player>().any { player -> canAccessChunk(player.location, player) }) {
-            event.vehicle.teleport(event.from)
-        }
+        //if (!event.vehicle.passengers.filterIsInstance<Player>().any { player -> canAccessChunk(player.location, player) }) {
+        //    event.vehicle.teleport(event.from)
+        //}
     }
 
     @EventHandler
