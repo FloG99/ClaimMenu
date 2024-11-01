@@ -12,5 +12,4 @@ A Minecraft Server Plugin for 1.20.4 adding a claim system with an innovative GU
 
 ## Demonstations
 ![GIF 29 03 2024 14-40-03](https://github.com/user-attachments/assets/716980a6-71e2-4a04-b79b-cdd2d637fde3)
-![GIF_20 07 2023_02-32-44](https://github.com/user-attachments/assets/3cf98fa2-b9aa-4b71-9b72-6adedf9916ea)
 ![GIF_17 06 2023_01-55-33](https://github.com/user-attachments/assets/55a88138-864d-4f67-9d66-24a46c7b42a6)
